@@ -103,6 +103,7 @@ RUN (groupadd -g 1000 kasm-user \
 ENV HOME /home/kasm-user
 WORKDIR $HOME
 RUN mkdir -p $HOME && chown -R 1000:0 $HOME
+RUN mkdir /var/run/pulse
 
 ### FIX PERMISSIONS ## Objective is to change the owner of non-home paths to root, remove write permissions, and set execute where required
 # these files are created on container first exec, by the default user, so we have to create them since default will not have write perm
@@ -121,6 +122,7 @@ RUN touch $STARTUPDIR/wm.log \
     && mkdir -p $STARTUPDIR/kasmrx/Downloads \
     && chown 1000:1000 $STARTUPDIR/kasmrx/Downloads \
     && chown -R root:root /usr/local/bin \
+    && chown 1000:root /var/run/pulse \
     && rm -Rf /home/kasm-default-profile/.launchpadlib
 
 #install kible stuff
@@ -129,17 +131,11 @@ RUN apt -y install libcurl4-openssl-dev libx11-dev libxtst-dev uuid-dev \
 libsodium-dev libc-ares-dev libswscale-dev libasound2-dev libopus-dev \
 libx264-dev libopusfile-dev libavformat-dev libavcodec-dev libjson-c-dev \
 libpulse-dev whois procps dbus-x11 pulseaudio xserver-xorg-video-dummy \
-libwebsockets-dev libgrpc-dev libgrpc++-dev
+libwebsockets-dev libgrpc-dev libgrpc++-dev sudo
 RUN apt clean
 RUN rm -rf /var/lib/apt/lists/*
-COPY librana.so /usr/local/lib
-WORKDIR /root
-RUN mkdir THEMIS
-COPY Themis ./THEMIS
-COPY launcher ./THEMIS
-RUN chmod +x ./THEMIS/launcher
-RUN chmod -R 777 /root
-WORKDIR /root/THEMIS
 COPY dummy-1920x1080.conf /root
+RUN adduser kasm-user sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 USER 1000
