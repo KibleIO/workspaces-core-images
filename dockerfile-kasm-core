@@ -1,8 +1,8 @@
-ARG BASE_IMAGE="ubuntu:20.04"
+ARG BASE_IMAGE="ubuntu:22.04"
 FROM $BASE_IMAGE AS install_tools
 ARG DISTRO=ubuntu
 
-LABEL "org.opencontainers.image.authors"='Kasm Tech "info@kasmweb.com"'
+LABEL "org.opencontainers.image.authors"='Kible "info@kible.io"'
 LABEL "com.kasmweb.image"="true"
 LABEL "com.kasmweb.gpu_acceleration_egl"="nvidia"
 
@@ -85,48 +85,8 @@ ADD /src/common/resources/images/icon_ubuntu.png /usr/share/extra/icons/icon_ubu
 ADD /src/common/resources/images/icon_ubuntu.png /usr/share/extra/icons/icon_default.png
 ADD /src/common/resources/images/icon_kasm.png /usr/share/extra/icons/icon_kasm.png
 
-### Install kasm_vnc dependencies and binaries
-COPY ./src/ubuntu/install/kasm_vnc $INST_SCRIPTS/kasm_vnc/
-RUN bash $INST_SCRIPTS/kasm_vnc/install_kasm_vnc.sh && rm -rf $INST_SCRIPTS/kasm_vnc/
-COPY ./src/common/install/kasm_vnc/kasmvnc.yaml /etc/kasmvnc/
-
-### Install Kasm Upload Server
-COPY ./src/ubuntu/install/kasm_upload_server $INST_SCRIPTS/kasm_upload_server/
-RUN bash $INST_SCRIPTS/kasm_upload_server/install_kasm_upload_server.sh  && rm -rf $INST_SCRIPTS/kasm_upload_server/
-
-
-### Install Audio
-COPY ./src/ubuntu/install/audio $INST_SCRIPTS/audio/
-RUN bash $INST_SCRIPTS/audio/install_audio.sh  && rm -rf $INST_SCRIPTS/audio/
-
-### Install Audio Input
-COPY ./src/ubuntu/install/audio_input $INST_SCRIPTS/audio_input/
-RUN bash $INST_SCRIPTS/audio_input/install_audio_input.sh && rm -rf $INST_SCRIPTS/audio_input/
-
-### Install Gamepad Service
-COPY ./src/ubuntu/install/gamepad $INST_SCRIPTS/gamepad/
-RUN bash $INST_SCRIPTS/gamepad/install_gamepad.sh && rm -rf $INST_SCRIPTS/gamepad/
-
-### Install custom cursors
-COPY ./src/ubuntu/install/cursors $INST_SCRIPTS/cursors/
-RUN bash $INST_SCRIPTS/cursors/install_cursors.sh && rm -rf $INST_SCRIPTS/cursors/
-
-### Install Squid
-COPY ./src/ubuntu/install/squid/install/ $INST_SCRIPTS/squid_install/
-RUN bash $INST_SCRIPTS/squid_install/install_squid.sh && rm -rf $INST_SCRIPTS/squid_install/
-COPY ./src/ubuntu/install/squid/resources/*.conf /etc/squid/
-COPY ./src/ubuntu/install/squid/resources/start_squid.sh /etc/squid/start_squid.sh
-COPY ./src/ubuntu/install/squid/resources/SN.png /usr/local/squid/share/icons/SN.png
-RUN chown proxy:proxy /usr/local/squid/share/icons/SN.png
-COPY ./src/ubuntu/install/squid/resources/error_message/access_denied.html /usr/local/squid/share/errors/en/ERR_ACCESS_DENIED
-RUN chown proxy:proxy /usr/local/squid/share/errors/en/ERR_ACCESS_DENIED
-RUN rm -rf $INST_SCRIPTS/resources/
-
-RUN chmod +x /etc/squid/kasm_squid_adapter
-RUN chmod +x /etc/squid/start_squid.sh && chmod 4755 /etc/squid/start_squid.sh
 
 ### configure startup
-COPY ./src/common/scripts/kasm_hook_scripts $STARTUPDIR
 ADD ./src/common/startup_scripts $STARTUPDIR
 RUN bash $STARTUPDIR/set_user_permission.sh $STARTUPDIR $HOME && \
     echo 'source $STARTUPDIR/generate_container_user' >> $HOME/.bashrc
@@ -146,13 +106,12 @@ RUN (groupadd -g 1000 kasm-user \
 ENV HOME /home/kasm-user
 WORKDIR $HOME
 RUN mkdir -p $HOME && chown -R 1000:0 $HOME
+RUN mkdir /var/run/pulse
 
 ### FIX PERMISSIONS ## Objective is to change the owner of non-home paths to root, remove write permissions, and set execute where required
 # these files are created on container first exec, by the default user, so we have to create them since default will not have write perm
 RUN touch $STARTUPDIR/wm.log \
     && touch $STARTUPDIR/window_manager_startup.log \
-    && touch $STARTUPDIR/vnc_startup.log \
-    && touch $STARTUPDIR/no_vnc_startup.log \
     && chown -R root:root $STARTUPDIR \
     && find $STARTUPDIR -type d -exec chmod 755 {} \; \
     && find $STARTUPDIR -type f -exec chmod 644 {} \; \
@@ -161,11 +120,7 @@ RUN touch $STARTUPDIR/wm.log \
     && find $STARTUPDIR -type f -iname "*.rb" -exec chmod 755 {} \; \
     && find $STARTUPDIR -type f -iname "*.pl" -exec chmod 755 {} \; \
     && find $STARTUPDIR -type f -iname "*.log" -exec chmod 666 {} \; \
-    && chmod 755 $STARTUPDIR/upload_server/kasm_upload_server \
-    && chmod 755 $STARTUPDIR/audio_input/kasm_audio_input_server \
-    && chmod 755 $STARTUPDIR/gamepad/kasm_gamepad_server \
     && chmod 755 $STARTUPDIR/generate_container_user \
-    && chmod +x $STARTUPDIR/jsmpeg/kasm_audio_out-linux \
     && rm -rf $STARTUPDIR/install \
     && mkdir -p $STARTUPDIR/kasmrx/Downloads \
     && chown 1000:1000 $STARTUPDIR/kasmrx/Downloads \
@@ -173,7 +128,17 @@ RUN touch $STARTUPDIR/wm.log \
     && chown 1000:root /var/run/pulse \
     && rm -Rf /home/kasm-default-profile/.launchpadlib
 
-USER 1000
+#install kible stuff
+RUN apt update
+RUN apt -y install libcurl4-openssl-dev libx11-dev libxtst-dev uuid-dev \
+libsodium-dev libc-ares-dev libswscale-dev libasound2-dev libopus-dev \
+libx264-dev libopusfile-dev libavformat-dev libavcodec-dev libjson-c-dev \
+libpulse-dev whois procps dbus-x11 pulseaudio xserver-xorg-video-dummy \
+libwebsockets-dev libgrpc-dev libgrpc++-dev sudo
+RUN apt clean
+RUN rm -rf /var/lib/apt/lists/*
+COPY dummy-1920x1080.conf /root
+RUN adduser kasm-user sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-ENTRYPOINT ["/dockerstartup/kasm_default_profile.sh", "/dockerstartup/vnc_startup.sh", "/dockerstartup/kasm_startup.sh"]
-CMD ["--wait"]
+USER 1000
