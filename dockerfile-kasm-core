@@ -134,7 +134,7 @@ RUN apt -y install libcurl4-openssl-dev libx11-dev libxtst-dev uuid-dev \
 libsodium-dev libc-ares-dev libswscale-dev libasound2-dev libopus-dev \
 libx264-dev libopusfile-dev libavformat-dev libavcodec-dev libjson-c-dev \
 libpulse-dev whois procps dbus-x11 pulseaudio xserver-xorg-video-dummy \
-libwebsockets-dev libgrpc-dev libgrpc++-dev sudo
+libwebsockets-dev libgrpc-dev libgrpc++-dev sudo curl
 RUN apt clean
 RUN rm -rf /var/lib/apt/lists/*
 COPY dummy-1920x1080.conf /root
