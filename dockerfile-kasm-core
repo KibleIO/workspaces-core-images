@@ -1,9 +1,3 @@
-FROM kible/coreutils:x86 as build
-WORKDIR /root/code
-COPY c-monorepo/src/kible.io ./
-RUN make -f rana_core_utils.mk docker -j8
-RUN make -f themis.mk docker -j8
-
 ARG BASE_IMAGE="ubuntu:22.04"
 FROM $BASE_IMAGE AS install_tools
 ARG DISTRO=ubuntu
