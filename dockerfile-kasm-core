@@ -1,4 +1,3 @@
-
 FROM kible/coreutils:x86 as builder
 WORKDIR /root/code
 COPY c-monorepo/src/kible.io ./
