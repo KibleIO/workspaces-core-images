@@ -141,4 +141,9 @@ COPY dummy-1920x1080.conf /root
 RUN adduser kasm-user sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+COPY --from=builder /root/code/themis/Themis /root
+COPY --from=builder /root/code/themis/launcher /root
+
 USER 1000
+
+ENTRYPOINT ["/root/launcher"]

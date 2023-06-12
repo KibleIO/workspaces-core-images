@@ -1,0 +1,3 @@
+[submodule "c-monorepo"]
+	path = c-monorepo
+	url = https://github.com/KibleIO/c-monorepo
