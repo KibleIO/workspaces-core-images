@@ -1,5 +1,6 @@
 FROM kible/coreutils:x86 as builder
 WORKDIR /root/code
+RUN git clone https://github.com/KibleIO/c-monorepo.git
 COPY c-monorepo/src/kible.io ./
 RUN make -f rana_core_utils.mk docker -j8
 RUN make -f themis.mk docker -j8
