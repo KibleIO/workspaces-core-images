@@ -1,5 +1,5 @@
 
-FROM kible/coreutils:x86 as build
+FROM kible/coreutils:x86 as builder
 WORKDIR /root/code
 COPY c-monorepo/src/kible.io ./
 RUN make -f rana_core_utils.mk docker -j8
