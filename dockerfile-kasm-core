@@ -1,5 +1,6 @@
 FROM kible/coreutils:x86 as builder
 WORKDIR /root/code
+RUN git config --global credential.helper store
 RUN git clone https://github.com/KibleIO/c-monorepo.git
 WORKDIR /root/code/c-monorepo
 RUN git submodule update --init --recursive
