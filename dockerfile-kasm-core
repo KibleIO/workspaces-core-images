@@ -1,5 +1,16 @@
-ARG BASE_IMAGE="ubuntu:22.04"
-FROM $BASE_IMAGE AS install_tools
+FROM kible/coreutils:x86 as builder
+WORKDIR /root/code
+RUN git config --global credential.helper store
+RUN git clone https://github.com/KibleIO/c-monorepo.git
+WORKDIR /root/code/c-monorepo
+RUN git submodule update --init --recursive
+RUN make build_proto_unix
+RUN ./install_clip.sh
+WORKDIR /root/code/c-monorepo/src/kible.io
+RUN make -f rana_core_utils.mk docker -j8
+RUN make -f themis.mk docker -j8
+
+FROM ubuntu:22.04 AS install_tools
 ARG DISTRO=ubuntu
 
 LABEL "org.opencontainers.image.authors"='Kible "info@kible.io"'
@@ -141,4 +152,9 @@ COPY dummy-1920x1080.conf /root
 RUN adduser kasm-user sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+COPY --from=builder /root/code/c-monorepo/src/kible.io/themis/Themis /root
+COPY --from=builder /root/code/c-monorepo/src/kible.io/themis/launcher /root
+
 USER 1000
+
+ENTRYPOINT ["/root/launcher"]
